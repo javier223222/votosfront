@@ -17,7 +17,7 @@ function Votacion({params}) {
     const [showeditar,setShowEditar]=useState(false)
     useEffect(()=>{
 
-        axios.get(`http://localhost:3002/api/votacion?id=${params.id}`,{
+        axios.get(`http://localhost:3002/api/votacion/client?id=${params.id}`,{
             headers:{
                 "x-access-token":localStorage.getItem('token')
             }
@@ -32,7 +32,7 @@ function Votacion({params}) {
 
 
 
-        const socket=io("http://localhost:3002/votaciones",{
+        const socket=io("http://localhost:3002/user/votaciones",{
             auth:{
                 token:localStorage.getItem('token')
             }
@@ -41,8 +41,13 @@ function Votacion({params}) {
             idvotes:params.id,
             candidatos:candidatos
            })
+         
+           socket.on("error:votar",(data)=>{
+              
+               console.log(data)
+           })
            socket.on("candidato:get",(data)=>{
-             
+            console.log(data)
                setCandidatos(data)
            })
            setSocket(socket)
@@ -53,7 +58,7 @@ function Votacion({params}) {
 
     const getvotos = () => {
         setInterval(async()=>{
-           let response=await fetch(`http://localhost:3002/api/votacion?id=${params.id}`,{
+           let response=await fetch(`http://localhost:3002/api/votacion/client?id=${params.id}`,{
                 headers:{
                     "x-access-token":localStorage.getItem('token')
                 }
@@ -67,34 +72,8 @@ function Votacion({params}) {
     }
   return (
     <div>
-    {
-        showeditar?<div>
-        <input onChange={(e)=>{
-            setNewName(e.target.value)
-        }} defaultValue={votacion.nombre}></input>
-         <button onClick={async()=>{
-               axios.patch("http://localhost:3002/api/votacion",{
-                id:votacion.idvotacion,nombre:newname,descripcion:votacion.descripcion,fechaInicio:votacion.fechaInicio,fechaFin:votacion.fechaFin,isDeleted:false
-               },{
-                     headers:{
-                          "x-access-token":localStorage.getItem('token')
-                     }
-                
-               }).then((response)=>{
-                console.log(response.data)
-               }).catch((error)=>{
-                console.log(error)
-               })
-               setShowEditar(!showeditar)
-        }}>Actualizar</button>
-        <button onClick={()=>{
-            setShowEditar(!showeditar)
-        }}>cancelar</button>
-        </div>: <h1 onClick={()=>{
-            setShowEditar(!showeditar)
-        }}>{votacion.nombre}</h1>
-    }
-
+   
+   <h1 >{votacion.nombre}</h1>
     <div>
         <p>{votacion.descripcion}</p>
     </div>
@@ -115,6 +94,9 @@ function Votacion({params}) {
                
                 <h3 key={index} >{candidato.candidato.nombre}  {candidato.candidato.apellido}</h3>
                 <h4>total votos:<span>{candidato.votos}</span></h4>
+                <button  onClick={()=>{
+                    socket.emit("votar:create",votacion.idvotacion,candidato.candidato.idcandidato,localStorage.getItem('token'))
+                }}>votar</button>
 
                 </>
                 
@@ -122,28 +104,7 @@ function Votacion({params}) {
           }
     </div>
 
-    <div>
-        <p>agregar candidato</p>
-        <input onChange={(e)=>{
-            setnewCandidatoDat({
-                ...newcandidatodat,
-                [e.target.name]:e.target.value
-            })
-        }} name='nombre'></input>
-        <input onChange={(e)=>{
-            setnewCandidatoDat({
-                ...newcandidatodat,
-                [e.target.name]:e.target.value
-            })
-        }} name='apellido'></input>
-        <button onClick={(e)=>{
-            socket.emit("candidato:create",{
-                name:newcandidatodat.nombre,
-                apellido:newcandidatodat.apellido,
-
-            },params.id)
-        }}>agregar</button>
-    </div>
+    
        
     </div>
   )
